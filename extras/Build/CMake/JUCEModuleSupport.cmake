@@ -252,6 +252,10 @@ function(_juce_get_platform_plugin_kinds out)
         list(APPEND result AU)
     endif()
 
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        list(APPEND result Unity)
+    endif()
+
     if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Android")
         list(APPEND result VST LV2)
         if(NOT (CMAKE_SYSTEM_NAME MATCHES ".*BSD"))

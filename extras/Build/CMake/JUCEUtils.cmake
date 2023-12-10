@@ -1270,6 +1270,12 @@ function(_juce_link_plugin_wrapper shared_code_target kind)
         add_library(${target_name} SHARED)
     elseif((kind STREQUAL "Standalone") OR (kind STREQUAL "AUv3"))
         add_executable(${target_name} WIN32 MACOSX_BUNDLE)
+    elseif((CMAKE_SYSTEM_NAME STREQUAL "iOS") AND (kind STREQUAL "Unity"))
+        add_library(${target_name} STATIC)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND libtool -static -o "${CMAKE_CURRENT_BINARY_DIR}/${target}_artefacts/$<CONFIG>/Unity/${target_name}.a" $<TARGET_FILE:${shared_code_target}> $<TARGET_FILE:${target_name}>
+            COMMENT "Combining static libraries into ${target_name}.a"
+        )
     else()
         add_library(${target_name} MODULE)
     endif()
@@ -1312,7 +1318,7 @@ function(_juce_link_plugin_wrapper shared_code_target kind)
 
     add_dependencies(${shared_code_target}_All ${target_name})
 
-    if(NOT kind STREQUAL "LV2")
+    if((NOT kind STREQUAL "LV2") AND NOT (CMAKE_SYSTEM_NAME STREQUAL "iOS" AND kind STREQUAL "Unity"))
         _juce_configure_bundle(${shared_code_target} ${target_name})
     else()
         _juce_write_configure_time_info(${shared_code_target})
