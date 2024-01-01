@@ -1273,8 +1273,8 @@ function(_juce_link_plugin_wrapper shared_code_target kind)
     elseif((CMAKE_SYSTEM_NAME STREQUAL "iOS") AND (kind STREQUAL "Unity"))
         add_library(${target_name} STATIC)
         add_custom_command(TARGET ${target_name} POST_BUILD
-            COMMAND libtool -static -o "${CMAKE_CURRENT_BINARY_DIR}/${target}_artefacts/$<CONFIG>/Unity/${target_name}.a" $<TARGET_FILE:${shared_code_target}> $<TARGET_FILE:${target_name}>
-            COMMENT "Combining static libraries into ${target_name}.a"
+            COMMAND libtool -static -o "${CMAKE_CURRENT_BINARY_DIR}/${target}_artefacts/$<CONFIG>/Unity/${target}.a" $<TARGET_FILE:${shared_code_target}> $<TARGET_FILE:${target_name}>
+            COMMENT "Combining static libraries into ${target}.a"
         )
     else()
         add_library(${target_name} MODULE)
