@@ -252,7 +252,7 @@ function(_juce_get_platform_plugin_kinds out)
         list(APPEND result AU)
     endif()
 
-    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS" OR CMAKE_SYSTEM_NAME STREQUAL "Android")
         list(APPEND result Unity)
     endif()
 
