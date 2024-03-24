@@ -151,6 +151,13 @@ public:
     }
 
     //==============================================================================
+    enum class State { idle, attack, decay, sustain, release };
+    ADSR::State getState() const noexcept
+    {
+        return state;
+    }
+
+    //==============================================================================
     /** Returns the next sample value for an ADSR object.
 
         @see applyEnvelopeToBuffer
@@ -284,8 +291,7 @@ private:
             reset();
     }
 
-    //==============================================================================
-    enum class State { idle, attack, decay, sustain, release };
+
 
     State state = State::idle;
     Parameters parameters;
