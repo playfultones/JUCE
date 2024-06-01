@@ -277,6 +277,8 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
     static CriticalSection cs;
     ScopedLock lock (cs);
 
+    juce::Logger::writeToLog("initialiseJUCE called in juce_Threads_android.cpp");
+
     // jniEnv and context should not be null!
     jassert (jniEnv != nullptr && context != nullptr);
 
@@ -289,6 +291,15 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
         auto status = env->GetJavaVM (&javaVM);
         jassert (status == 0 && javaVM != nullptr);
 
+        if (status == 0 && javaVM != nullptr)
+        {
+            juce::Logger::writeToLog("JavaVM obtained successfully");
+        }
+        else
+        {
+            juce::Logger::writeToLog("Failed to obtain JavaVM");
+        }
+
         androidJNIJavaVM = javaVM;
     }
 
@@ -300,10 +311,14 @@ void Thread::initialiseJUCE (void* jniEnv, void* context)
 
         // if we ever support unloading then this should probably be a weak reference
         androidApkContext = env->NewGlobalRef (static_cast<jobject> (context));
+        juce::Logger::writeToLog("androidApkContext set");
+
         JuceActivityWatcher::getInstance();
+        juce::Logger::writeToLog("JuceActivityWatcher initialized");
 
        #if JUCE_MODULE_AVAILABLE_juce_events && JUCE_ANDROID
         juce_juceEventsAndroidStartApp();
+        juce::Logger::writeToLog("juce_juceEventsAndroidStartApp called");
        #endif
     }
 }

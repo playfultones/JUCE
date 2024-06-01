@@ -76,7 +76,10 @@ private:
 JUCE_IMPLEMENT_SINGLETON (AndroidMessageQueue)
 
 //==============================================================================
-void MessageManager::doPlatformSpecificInitialisation() { AndroidMessageQueue::getInstance(); }
+void MessageManager::doPlatformSpecificInitialisation() { 
+    juce::Logger::writeToLog ("MessageManager::doPlatformSpecificInitialisation");
+    AndroidMessageQueue::getInstance();
+}
 void MessageManager::doPlatformSpecificShutdown()       { AndroidMessageQueue::deleteInstance(); }
 
 bool MessageManager::postMessageToSystemQueue (MessageManager::MessageBase* const message)
@@ -256,8 +259,17 @@ void juce_juceEventsAndroidStartApp()
     auto addr = reinterpret_cast<juce::JUCEApplicationBase*(*)()> (DynamicLibrary (dllPath)
                                                                     .getFunction ("juce_CreateApplication"));
 
+    juce::Logger::writeToLog ("Starting JUCE app on Android");
+
     if (addr != nullptr)
+    {
+        juce::Logger::writeToLog ("juce_CreateApplication could create a juce app instance");
         JuceAppLifecycle::getInstance (addr);
+    }
+    else
+    {
+        juce::Logger::writeToLog ("juce_CreateApplication could not create a juce app instance, or not found in the library");
+    }
 }
 
 } // namespace juce
