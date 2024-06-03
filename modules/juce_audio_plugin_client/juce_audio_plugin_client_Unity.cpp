@@ -294,6 +294,7 @@ class AudioProcessorUnityWrapper
 public:
     AudioProcessorUnityWrapper (bool isTemporary)
     {
+        juce::Logger::writeToLog ("AudioProcessorUnityWrapper constructor is called!");
         detail::RunningInUnity::state = true;
         pluginInstance = createPluginFilterOfType (AudioProcessor::wrapperType_Unity);
 
@@ -513,6 +514,7 @@ static void onWrapperDeletion (AudioProcessorUnityWrapper* wrapperToRemove)
 //==============================================================================
 static UnityAudioEffectDefinition getEffectDefinition()
 {
+    juce::Logger::writeToLog ("getEffectDefinition is called!");
     const auto wrapper = std::make_unique<AudioProcessorUnityWrapper> (true);
     const String originalName { JucePlugin_Name };
     const auto name = (! originalName.startsWithIgnoreCase ("audioplugin") ? "audioplugin_" : "") + originalName;
@@ -670,6 +672,7 @@ static UnityAudioEffectDefinition getEffectDefinition()
 // should point to a pre-existing/static array of pointer-to-effect-definition.
 UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API UnityGetAudioEffectDefinitions (UnityAudioEffectDefinition*** definitionsPtr)
 {
+    juce::Logger::writeToLog ("UnityGetAudioEffectDefinitions is called!");
     if (juce::getWrapperMap().size() == 0)
         juce::initialiseJuce_GUI();
 

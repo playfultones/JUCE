@@ -32,7 +32,7 @@ inline std::unique_ptr<AudioProcessor> createPluginFilterOfType (AudioProcessor:
 {
     PluginHostType::jucePlugInClientCurrentWrapperType = type;
     AudioProcessor::setTypeOfNextNewPlugin (type);
-    juce::Logger::writeToLog ("Creating plugin instance with createPluginFilter()");
+    juce::Logger::writeToLog ("createPluginFilter() is called!");
     auto pluginInstance = rawToUniquePtr (::createPluginFilter());
     AudioProcessor::setTypeOfNextNewPlugin (AudioProcessor::wrapperType_Undefined);
 
