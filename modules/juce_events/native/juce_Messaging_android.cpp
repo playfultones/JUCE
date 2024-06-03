@@ -20,57 +20,96 @@
   ==============================================================================
 */
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <atomic>
-
 namespace juce
 {
 
-struct AndroidMessageQueue {
+//==============================================================================
+namespace Android
+{
+    class Runnable : public juce::AndroidInterfaceImplementer
+    {
+    public:
+        virtual void run() = 0;
+
+    private:
+        jobject invoke (jobject proxy, jobject method, jobjectArray args) override
+        {
+            auto* env = getEnv();
+            auto methodName = juce::juceString ((jstring) env->CallObjectMethod (method, JavaMethod.getName));
+
+            if (methodName == "run")
+            {
+                run();
+                return nullptr;
+            }
+
+            // invoke base class
+            return AndroidInterfaceImplementer::invoke (proxy, method, args);
+        }
+    };
+
+    struct Handler
+    {
+        Handler() : nativeHandler (LocalRef<jobject> (getEnv()->NewObject (AndroidHandler, AndroidHandler.constructor))) {}
+        ~Handler() { clearSingletonInstance(); }
+
+        JUCE_DECLARE_SINGLETON (Handler, false)
+
+        bool post (jobject runnable)
+        {
+            return (getEnv()->CallBooleanMethod (nativeHandler.get(), AndroidHandler.post, runnable) != 0);
+        }
+
+        GlobalRef nativeHandler;
+    };
+
+    JUCE_IMPLEMENT_SINGLETON (Handler)
+}
+
+//==============================================================================
+struct AndroidMessageQueue final : private Android::Runnable
+{
     JUCE_DECLARE_SINGLETON_SINGLETHREADED (AndroidMessageQueue, true)
 
-    AndroidMessageQueue() : quitFlag(false) {
-        messageThread = std::thread(&AndroidMessageQueue::processMessages, this);
+    AndroidMessageQueue()
+        : self (CreateJavaInterface (this, "java/lang/Runnable"))
+    {
     }
 
-    ~AndroidMessageQueue() {
+    ~AndroidMessageQueue() override
+    {
         JUCE_ASSERT_MESSAGE_THREAD
-        quitFlag = true;
-        cv.notify_one();
-        messageThread.join();
+        clearSingletonInstance();
     }
 
-    bool post(MessageManager::MessageBase::Ptr&& message) {
-        if (! quitFlag) {
-            queue.add(message);
-            std::lock_guard<std::mutex> lock(cv_m);
-            cv.notify_one();
-            return true;
-        }
-        return false;
+    bool post (MessageManager::MessageBase::Ptr&& message)
+    {
+        queue.add (std::move (message));
+
+        // this will call us on the message thread
+        return handler.post (self.get());
     }
 
 private:
-    void processMessages() {
-        while (! quitFlag) {
-            std::unique_lock<std::mutex> lock(cv_m);
-            cv.wait(lock, [this] { return !queue.isEmpty() || quitFlag; });
 
-            while (! queue.isEmpty()) {
-                auto message = queue.removeAndReturn(0);
-                if (message != nullptr)
-                    message->messageCallback();
-            }
+    void run() override
+    {
+        for (;;)
+        {
+            MessageManager::MessageBase::Ptr message (queue.removeAndReturn (0));
+
+            if (message == nullptr)
+                break;
+
+            message->messageCallback();
         }
     }
 
+    // the this pointer to this class in Java land
+    GlobalRef self;
+
     ReferenceCountedArray<MessageManager::MessageBase, CriticalSection> queue;
-    std::condition_variable cv;
-    std::mutex cv_m;
-    std::thread messageThread;
-    std::atomic<bool> quitFlag;
+    Android::Handler handler;
 };
 
 JUCE_IMPLEMENT_SINGLETON (AndroidMessageQueue)
