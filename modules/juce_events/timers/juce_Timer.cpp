@@ -23,20 +23,70 @@
 namespace juce
 {
 
-class Timer::TimerThread final : private Thread
+class ShutdownDetector : private DeletedAtShutdown
 {
 public:
-    using LockType = CriticalSection; // (mysteriously, using a SpinLock here causes problems on some XP machines..)
+    ShutdownDetector() = default;
 
-    TimerThread()  : Thread ("JUCE Timer")
+    ~ShutdownDetector() override
+    {
+        getListeners().call (&Listener::applicationShuttingDown);
+        clearSingletonInstance();
+    }
+
+    struct Listener
+    {
+        virtual ~Listener() = default;
+        virtual void applicationShuttingDown() = 0;
+    };
+
+    static void addListener (Listener* listenerToAdd)
+    {
+        // Only try to create an instance of the ShutdownDetector when a listener is added
+        [[maybe_unused]] auto* instance = getInstance();
+        getListeners().add (listenerToAdd);
+    }
+
+    static void removeListener (Listener* listenerToRemove)
+    {
+        getListeners().remove (listenerToRemove);
+    }
+
+private:
+    using ListenerListType = ListenerList<Listener, Array<Listener*, CriticalSection>>;
+
+    // By having a static ListenerList it can outlive the ShutdownDetector instance preventing
+    // issues for objects trying to remove themselves after the instance has been deleted
+    static ListenerListType& getListeners()
+    {
+        static ListenerListType listeners;
+        return listeners;
+    }
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ShutdownDetector)
+    JUCE_DECLARE_NON_MOVEABLE (ShutdownDetector)
+    JUCE_DECLARE_SINGLETON (ShutdownDetector, false)
+};
+
+JUCE_IMPLEMENT_SINGLETON (ShutdownDetector)
+
+class Timer::TimerThread final : private Thread,
+                                 private ShutdownDetector::Listener
+{
+public:
+    using LockType = CriticalSection;
+
+    TimerThread()
+        : Thread ("JUCE Timer")
     {
         timers.reserve (32);
+        ShutdownDetector::addListener (this);
     }
 
     ~TimerThread() override
     {
-        signalThreadShouldExit();
-        callbackArrived.signal();
+        stopThreadAsync();
+        ShutdownDetector::removeListener (this);
         stopThread (-1);
     }
 
@@ -273,6 +323,19 @@ private:
         return timers.front().countdownMs;
     }
 
+    //==============================================================================
+    void applicationShuttingDown() final
+    {
+        stopThreadAsync();
+    }
+
+    void stopThreadAsync()
+    {
+        signalThreadShouldExit();
+        callbackArrived.signal();
+    }
+
+    //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TimerThread)
 };
 

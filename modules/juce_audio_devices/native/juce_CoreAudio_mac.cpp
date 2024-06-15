@@ -1039,7 +1039,7 @@ public:
 
     CoreAudioIODevice& owner;
     int bitDepth = 32;
-    int xruns = 0;
+    std::atomic<int> xruns = 0;
     Array<double> sampleRates;
     Array<int> bufferSizes;
     AudioDeviceID deviceID;
@@ -1112,8 +1112,8 @@ private:
         auto oldBufferSize = bufferSize;
 
         if (! updateDetailsFromDevice())
-            owner.stopInternal();
-        else if ((oldBufferSize != bufferSize || ! approximatelyEqual (oldSampleRate, sampleRate)) && owner.shouldRestartDevice())
+            owner.stopWithPendingCallback();
+        else if (oldBufferSize != bufferSize || ! approximatelyEqual (oldSampleRate, sampleRate))
             owner.restart();
     }
 
@@ -1147,7 +1147,7 @@ private:
             return x.mSelector == kAudioDeviceProcessorOverload;
         });
 
-        intern.xruns += xruns;
+        intern.xruns += (int) xruns;
 
         const auto detailsChanged = std::any_of (pa, pa + numAddresses, [] (const AudioObjectPropertyAddress& x)
         {
@@ -1313,30 +1313,26 @@ public:
 
     void start (AudioIODeviceCallback* callback) override
     {
+        const ScopedLock sl (startStopLock);
+
         if (internal->start (callback))
-            previousCallback = callback;
+            pendingCallback = nullptr;
     }
 
     void stop() override
     {
-        restartDevice = false;
         stopAndGetLastCallback();
+
+        const ScopedLock sl (startStopLock);
+        pendingCallback = nullptr;
     }
 
-    AudioIODeviceCallback* stopAndGetLastCallback() const
+    void stopWithPendingCallback()
     {
-        auto* lastCallback = internal->stop (true);
+        const ScopedLock sl (startStopLock);
 
-        if (lastCallback != nullptr)
-            lastCallback->audioDeviceStopped();
-
-        return lastCallback;
-    }
-
-    AudioIODeviceCallback* stopInternal()
-    {
-        restartDevice = true;
-        return stopAndGetLastCallback();
+        if (pendingCallback == nullptr)
+            pendingCallback = stopAndGetLastCallback();
     }
 
     AudioWorkgroup getWorkgroup() const override
@@ -1369,11 +1365,7 @@ public:
             return;
         }
 
-        {
-            const ScopedLock sl (closeLock);
-            previousCallback = stopInternal();
-        }
-
+        stopWithPendingCallback();
         startTimer (100);
     }
 
@@ -1387,31 +1379,45 @@ public:
         restarter = restarterIn;
     }
 
-    bool shouldRestartDevice() const noexcept    { return restartDevice; }
-
     WeakReference<CoreAudioIODeviceType> deviceType;
     bool hadDiscontinuity;
 
 private:
     std::unique_ptr<CoreAudioInternal> internal;
-    bool isOpen_ = false, restartDevice = true;
+    bool isOpen_ = false;
     String lastError;
-    AudioIODeviceCallback* previousCallback = nullptr;
+    //  When non-null, this indicates that the device has been stopped with the intent to restart
+    //  using the same callback. That is, this should only be non-null when the device is stopped.
+    AudioIODeviceCallback* pendingCallback = nullptr;
     AsyncRestarter* restarter = nullptr;
     BigInteger inputChannelsRequested, outputChannelsRequested;
-    CriticalSection closeLock;
+    CriticalSection startStopLock;
+
+    AudioIODeviceCallback* stopAndGetLastCallback() const
+    {
+        auto* lastCallback = internal->stop (true);
+
+        if (lastCallback != nullptr)
+            lastCallback->audioDeviceStopped();
+
+        return lastCallback;
+    }
 
     void timerCallback() override
     {
         stopTimer();
 
-        stopInternal();
+        stopWithPendingCallback();
 
         internal->updateDetailsFromDevice();
 
-        open (inputChannelsRequested, outputChannelsRequested,
-              getCurrentSampleRate(), getCurrentBufferSizeSamples());
-        start (previousCallback);
+        open (inputChannelsRequested,
+              outputChannelsRequested,
+              getCurrentSampleRate(),
+              getCurrentBufferSizeSamples());
+
+        const ScopedLock sl { startStopLock };
+        start (pendingCallback);
     }
 
     static OSStatus hardwareListenerProc (AudioDeviceID /*inDevice*/,
@@ -1724,7 +1730,7 @@ private:
         }
 
         for (auto& d : getDeviceWrappers())
-            d->stopInternal();
+            d->stop();
 
         if (lastCallback != nullptr)
         {
@@ -1990,7 +1996,7 @@ private:
         int getCurrentBitDepth()                                  const { return device->getCurrentBitDepth(); }
         int getDefaultBufferSize()                                const { return device->getDefaultBufferSize(); }
         void start (AudioIODeviceCallback* callbackToNotify)      const { return device->start (callbackToNotify); }
-        AudioIODeviceCallback* stopInternal()                     const { return device->stopInternal(); }
+        void stop()                                               const { return device->stop(); }
         void close()                                              const { return device->close(); }
         AudioWorkgroup getWorkgroup()                             const { return device->getWorkgroup(); }
 
