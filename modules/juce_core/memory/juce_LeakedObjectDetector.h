@@ -80,7 +80,9 @@ private:
         {
             if (numObjects.value > 0)
             {
-                DBG ("*** Leaked objects detected: " << numObjects.value << " instance(s) of class " << getLeakedObjectClassName());
+                const auto className = getLeakedObjectClassName();
+                const auto leakedAmount = numObjects.value.load();
+                DBG ("*** Leaked objects detected: " << leakedAmount << " instance(s) of class " << className);
 
                 /** If you hit this, then you've leaked one or more objects of the type specified by
                     the 'OwnerClass' template parameter - the name should have been printed by the line above.
