@@ -39,6 +39,8 @@ namespace juce
 template <class InterpolatorTraits, int memorySize>
 class JUCE_API  GenericInterpolator
 {
+    using GainLookup = std::function<float()>;
+
     static auto processReplacingCallback()
     {
         return [] (auto, auto newValue) { return newValue; };
@@ -47,6 +49,11 @@ class JUCE_API  GenericInterpolator
     static auto processAddingCallback (float gain)
     {
         return [gain] (auto oldValue, auto newValue) { return oldValue + gain * newValue; };
+    }
+
+    static auto processAddingWithGainLookupCallback(const GainLookup& gainLookup)
+    {
+        return [gainLookup] (auto oldValue, auto newValue) { return oldValue + gainLookup() * newValue; };
     }
 
 public:
@@ -155,6 +162,34 @@ public:
                                 outputSamples,
                                 numOutputSamplesToProduce,
                                 processAddingCallback (gain));
+    }
+
+    /** Resamples a stream of samples, adding the results to the output data
+        with a gain.
+
+        @param speedRatio                   the number of input samples to use for each output sample
+        @param inputSamples                 the source data to read from. This must contain at
+                                            least (speedRatio * numOutputSamplesToProduce) samples.
+        @param outputSamples                the buffer to write the results to - the result values will be added
+                                            to any pre-existing data in this buffer after being multiplied by
+                                            the gain factor
+        @param numOutputSamplesToProduce    the number of output samples that should be created
+        @param gainLookup                   a function that returns the gain factor to multiply the resulting
+                                            samples by before adding them to the destination buffer
+
+        @returns the actual number of input samples that were used
+    */
+    int processAdding (double speedRatio,
+        const float* inputSamples,
+        float* outputSamples,
+        int numOutputSamplesToProduce,
+        const GainLookup& gainLookup) noexcept
+    {
+        return interpolateImpl (speedRatio,
+            inputSamples,
+            outputSamples,
+            numOutputSamplesToProduce,
+            processAddingWithGainLookupCallback(gainLookup));
     }
 
     /** Resamples a stream of samples, adding the results to the output data
