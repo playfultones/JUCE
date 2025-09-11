@@ -385,10 +385,10 @@ public:
                                 of any Slider::Listeners that are registered. A notification will
                                 only be sent if the Slider's value has changed.
     */
-    void setValue (double newValue, NotificationType notification = sendNotificationAsync);
+    virtual void setValue (double newValue, NotificationType notification = sendNotificationAsync);
 
     /** Returns the slider's current value. */
-    double getValue() const;
+    virtual double getValue() const;
 
     /** Returns the Value object that represents the slider's current position.
         You can use this Value object to connect the slider's position to external values or setters,
