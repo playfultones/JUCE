@@ -137,7 +137,6 @@
 #include "misc/juce_PushNotifications.cpp"
 #include "misc/juce_RecentlyOpenedFilesList.cpp"
 #include "misc/juce_SplashScreen.cpp"
-#include "misc/juce_SystemTrayIconComponent.cpp"
 #include "misc/juce_LiveConstantEditor.cpp"
 #include "misc/juce_AnimatedAppComponent.cpp"
 #include "misc/juce_WebBrowserComponent.cpp"
@@ -160,6 +159,8 @@
   #include "native/juce_WebBrowserComponent_mac.mm"
  #endif
 
+ #include "misc/juce_SystemTrayIconComponent.cpp"
+
 //==============================================================================
 #elif JUCE_WINDOWS
  #include "native/juce_ActiveXComponent_windows.cpp"
@@ -168,6 +169,7 @@
   #include "native/juce_WebBrowserComponent_windows.cpp"
  #endif
  #include "native/juce_SystemTrayIcon_windows.cpp"
+ #include "misc/juce_SystemTrayIconComponent.cpp"
 
 //==============================================================================
 #elif JUCE_LINUX || JUCE_BSD
@@ -187,6 +189,7 @@
  JUCE_END_IGNORE_WARNINGS_GCC_LIKE
 
  #include "native/juce_SystemTrayIcon_linux.cpp"
+ #include "misc/juce_SystemTrayIconComponent.cpp"
 
 //==============================================================================
 #elif JUCE_ANDROID

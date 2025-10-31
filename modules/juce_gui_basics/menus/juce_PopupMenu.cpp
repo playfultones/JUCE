@@ -1851,6 +1851,13 @@ void PopupMenu::addCommandItem (ApplicationCommandManager* commandManager,
     }
 }
 
+void PopupMenu::addCommandItem (ApplicationCommandManager* commandManager,
+                                const CommandID commandID,
+                                String displayName)
+{
+    addCommandItem (commandManager, commandID, std::move (displayName), nullptr);
+}
+
 void PopupMenu::addColouredItem (int itemResultID, String itemText, Colour itemTextColour,
                                  bool isActive, bool isTicked, std::unique_ptr<Drawable> iconToUse)
 {

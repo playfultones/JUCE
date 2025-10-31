@@ -105,35 +105,6 @@ struct FontStyleHelpers
 };
 
 //==============================================================================
-Typeface::Typeface (const String& faceName, const String& styleName) noexcept
-    : name (faceName), style (styleName)
-{
-}
-
-Typeface::~Typeface() = default;
-
-Typeface::Ptr Typeface::getFallbackTypeface()
-{
-    const Font fallbackFont (Font::getFallbackFontName(), Font::getFallbackFontStyle(), 10.0f);
-    return fallbackFont.getTypefacePtr();
-}
-
-EdgeTable* Typeface::getEdgeTableForGlyph (int glyphNumber, const AffineTransform& transform, float fontHeight)
-{
-    Path path;
-
-    if (getOutlineForGlyph (glyphNumber, path) && ! path.isEmpty())
-    {
-        applyVerticalHintingTransform (fontHeight, path);
-
-        return new EdgeTable (path.getBoundsTransformed (transform).getSmallestIntegerContainer().expanded (1, 0),
-                              path, transform);
-    }
-
-    return nullptr;
-}
-
-//==============================================================================
 struct Typeface::HintingParams
 {
     HintingParams (Typeface& t)
@@ -246,6 +217,36 @@ private:
     enum { standardHeight = 100 };
     float top = 0, middle = 0, bottom = 0;
 };
+
+Typeface::Typeface (const String& faceName, const String& styleName) noexcept
+    : name (faceName), style (styleName)
+{
+}
+
+Typeface::~Typeface() = default;
+
+Typeface::Ptr Typeface::getFallbackTypeface()
+{
+    const Font fallbackFont (Font::getFallbackFontName(), Font::getFallbackFontStyle(), 10.0f);
+    return fallbackFont.getTypefacePtr();
+}
+
+EdgeTable* Typeface::getEdgeTableForGlyph (int glyphNumber, const AffineTransform& transform, float fontHeight)
+{
+    Path path;
+
+    if (getOutlineForGlyph (glyphNumber, path) && ! path.isEmpty())
+    {
+        applyVerticalHintingTransform (fontHeight, path);
+
+        return new EdgeTable (path.getBoundsTransformed (transform).getSmallestIntegerContainer().expanded (1, 0),
+                              path, transform);
+    }
+
+    return nullptr;
+}
+
+//==============================================================================
 
 void Typeface::applyVerticalHintingTransform (float fontSize, Path& path)
 {

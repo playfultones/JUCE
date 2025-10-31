@@ -23,6 +23,7 @@
 namespace juce
 {
 
+#ifndef JUCE_MIDI_DEVICE_LIST_CONNECTION_BROADCASTER_DEFINED
 class MidiDeviceListConnectionBroadcaster final : private AsyncUpdater
 {
 public:
@@ -89,6 +90,7 @@ private:
     State lastNotifiedState;
     MidiDeviceListConnection::Key key = 0;
 };
+#endif
 
 //==============================================================================
 MidiDeviceListConnection::~MidiDeviceListConnection() noexcept

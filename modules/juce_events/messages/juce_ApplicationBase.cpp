@@ -30,6 +30,52 @@ JUCEApplicationBase* JUCEApplicationBase::appInstance = nullptr;
 void* JUCEApplicationBase::iOSCustomDelegate = nullptr;
 #endif
 
+//==============================================================================
+#if ! (JUCE_IOS || JUCE_ANDROID)
+ #define JUCE_HANDLE_MULTIPLE_INSTANCES 1
+#endif
+
+#if JUCE_HANDLE_MULTIPLE_INSTANCES
+struct JUCEApplicationBase::MultipleInstanceHandler final : public ActionListener
+{
+    MultipleInstanceHandler (const String& appName)
+        : appLock ("juceAppLock_" + appName)
+    {
+    }
+
+    bool sendCommandLineToPreexistingInstance()
+    {
+        if (appLock.enter (0))
+            return false;
+
+        if (auto* app = JUCEApplicationBase::getInstance())
+        {
+            MessageManager::broadcastMessage (app->getApplicationName() + "/" + app->getCommandLineParameters());
+            return true;
+        }
+
+        jassertfalse;
+        return false;
+    }
+
+    void actionListenerCallback (const String& message) override
+    {
+        if (auto* app = JUCEApplicationBase::getInstance())
+        {
+            auto appName = app->getApplicationName();
+
+            if (message.startsWith (appName + "/"))
+                app->anotherInstanceStarted (message.substring (appName.length() + 1));
+        }
+    }
+
+private:
+    InterProcessLock appLock;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MultipleInstanceHandler)
+};
+#endif
+
 JUCEApplicationBase::JUCEApplicationBase()
 {
     jassert (isStandaloneApp() && appInstance == nullptr);
@@ -86,50 +132,7 @@ void JUCEApplicationBase::sendUnhandledException (const std::exception* const e,
 }
 
 //==============================================================================
-#if ! (JUCE_IOS || JUCE_ANDROID)
- #define JUCE_HANDLE_MULTIPLE_INSTANCES 1
-#endif
-
 #if JUCE_HANDLE_MULTIPLE_INSTANCES
-struct JUCEApplicationBase::MultipleInstanceHandler final : public ActionListener
-{
-    MultipleInstanceHandler (const String& appName)
-        : appLock ("juceAppLock_" + appName)
-    {
-    }
-
-    bool sendCommandLineToPreexistingInstance()
-    {
-        if (appLock.enter (0))
-            return false;
-
-        if (auto* app = JUCEApplicationBase::getInstance())
-        {
-            MessageManager::broadcastMessage (app->getApplicationName() + "/" + app->getCommandLineParameters());
-            return true;
-        }
-
-        jassertfalse;
-        return false;
-    }
-
-    void actionListenerCallback (const String& message) override
-    {
-        if (auto* app = JUCEApplicationBase::getInstance())
-        {
-            auto appName = app->getApplicationName();
-
-            if (message.startsWith (appName + "/"))
-                app->anotherInstanceStarted (message.substring (appName.length() + 1));
-        }
-    }
-
-private:
-    InterProcessLock appLock;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MultipleInstanceHandler)
-};
-
 bool JUCEApplicationBase::sendCommandLineToPreexistingInstance()
 {
     jassert (multipleInstanceHandler == nullptr); // this must only be called once!
