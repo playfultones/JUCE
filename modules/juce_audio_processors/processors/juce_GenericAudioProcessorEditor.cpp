@@ -337,6 +337,7 @@ public:
         valueLabel.setColour (Label::outlineColourId, slider.findColour (Slider::textBoxOutlineColourId));
         valueLabel.setBorderSize ({ 1, 1, 1, 1 });
         valueLabel.setJustificationType (Justification::centred);
+        valueLabel.setEditable (true, false, false);
         addAndMakeVisible (valueLabel);
 
         // Set the initial value.
@@ -345,6 +346,7 @@ public:
         slider.onValueChange = [this] { sliderValueChanged(); };
         slider.onDragStart   = [this] { sliderStartedDragging(); };
         slider.onDragEnd     = [this] { sliderStoppedDragging(); };
+        valueLabel.onTextChange = [this] { labelTextChanged(); };
     }
 
     void paint (Graphics&) override {}
@@ -401,6 +403,20 @@ private:
     {
         isDragging = false;
         getParameter().endChangeGesture();
+    }
+
+    void labelTextChanged()
+    {
+        auto newVal = getParameter().getValueForText (valueLabel.getText());
+
+        if (! approximatelyEqual (getParameter().getValue(), newVal))
+        {
+            getParameter().beginChangeGesture();
+            getParameter().setValueNotifyingHost (newVal);
+            getParameter().endChangeGesture();
+        }
+
+        updateTextDisplay();
     }
 
     Slider slider { Slider::LinearHorizontal, Slider::TextEntryBoxPosition::NoTextBox };
