@@ -81,6 +81,7 @@ private:
             if (numObjects.value > 0)
             {
                 const auto className = getLeakedObjectClassName();
+                ignoreUnused (className);
                 const auto leakedAmount = numObjects.value.load();
                 DBG ("*** Leaked objects detected: " << leakedAmount << " instance(s) of class " << className);
 
