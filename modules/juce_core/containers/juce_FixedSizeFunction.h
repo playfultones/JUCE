@@ -96,14 +96,15 @@ template <size_t len, typename Ret, typename... Args>
 class FixedSizeFunction<len, Ret (Args...)>
 {
 private:
-    using Storage = std::aligned_storage_t<len>;
+    static constexpr size_t storageAlignment = alignof (std::max_align_t);
+    struct alignas (storageAlignment) Storage { std::byte data[len]; };
 
     template <typename Item>
     using Decay = std::decay_t<Item>;
 
     template <typename Item, typename Fn = Decay<Item>>
     using IntIfValidConversion = std::enable_if_t<sizeof (Fn) <= len
-                                                      && alignof (Fn) <= alignof (Storage)
+                                                      && alignof (Fn) <= storageAlignment
                                                       && ! std::is_same_v<FixedSizeFunction, Fn>,
                                                   int>;
 
