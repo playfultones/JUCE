@@ -694,7 +694,6 @@ function(_juce_configure_bundle source_target dest_target)
         GENERATED TRUE)
     add_custom_command(TARGET ${dest_target} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy "${this_output_pkginfo}" "${output_folder}"
-        DEPENDS "${this_output_pkginfo}"
         VERBATIM)
 
     _juce_add_xcode_entitlements(${source_target} ${dest_target})
@@ -1198,7 +1197,6 @@ function(_juce_set_plugin_target_properties shared_code_target kind)
             # On windows and linux, the gui script needs to be copied next to the unity output
             add_custom_command(TARGET ${target_name} POST_BUILD
                 COMMAND "${CMAKE_COMMAND}" -E copy "${script_file}" "${products_folder}"
-                DEPENDS "${script_file}"
                 VERBATIM)
 
             _juce_set_copy_properties(${shared_code_target}
