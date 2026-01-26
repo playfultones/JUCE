@@ -26,6 +26,11 @@
 namespace juce
 {
 
+std::unique_ptr<AccessibilityHandler> Viewport::AccessibilityIgnoredComponent::createAccessibilityHandler()
+{
+    return createIgnoredAccessibilityHandler (*this);
+}
+
 using ViewportDragPosition = AnimatedPosition<AnimatedPositionBehaviours::ContinuousWithMomentum>;
 
 struct Viewport::DragToScrollListener final : private MouseListener,
