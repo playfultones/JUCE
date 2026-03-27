@@ -43,6 +43,7 @@
 //==============================================================================
 #if JUCE_MAC
  #import <QuartzCore/QuartzCore.h>
+ #import <CoreImage/CoreImage.h>
 
 #elif JUCE_WINDOWS
   // get rid of some warnings in Window's own headers
