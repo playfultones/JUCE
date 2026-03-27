@@ -1927,6 +1927,9 @@ private:
            #if defined (MAC_OS_X_VERSION_10_15) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_15
             case NSEventTypeChangeMode:
            #endif
+           #if defined (MAC_OS_VERSION_26_0)
+            case NSEventTypeMouseCancelled:
+           #endif
             default:
                 return false;
         }
