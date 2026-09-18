@@ -1416,6 +1416,12 @@ private:
 //==============================================================================
 static HMONITOR getMonitorFromOutput (ComSmartPtr<IDXGIOutput> output)
 {
+    // EnumOutputs can fail with something other than DXGI_ERROR_NOT_FOUND
+    // (e.g. in a session with no interactive desktop) and leave the output
+    // null; treat that as "no monitor" rather than dereferencing it.
+    if (output == nullptr)
+        return nullptr;
+
     DXGI_OUTPUT_DESC desc = {};
     return (FAILED (output->GetDesc (&desc)) || ! desc.AttachedToDesktop)
         ? nullptr
@@ -1605,6 +1611,9 @@ public:
 
             while (adapter->EnumOutputs (i, output.resetAndGetPointerAddress()) != DXGI_ERROR_NOT_FOUND)
             {
+                if (output == nullptr)
+                    break;
+
                 if (getMonitorFromOutput (output) == monitor)
                 {
                     threads.emplace_back (std::make_unique<VSyncThread> (output, monitor, listener));
@@ -1643,6 +1652,9 @@ public:
 
         while (factory->EnumAdapters (i, adapter.resetAndGetPointerAddress()) != DXGI_ERROR_NOT_FOUND)
         {
+            if (adapter == nullptr)
+                break;
+
             adapters.push_back (adapter);
             ++i;
         }
